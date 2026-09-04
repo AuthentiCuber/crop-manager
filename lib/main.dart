@@ -1,7 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-void main() {
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'package:path/path.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite/sqflite.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+
+  final database = openDatabase(
+    join(await getDatabasesPath(), "crop_jobs.db"),
+    onCreate: (db, version) {
+      return db.execute(
+        "CREATE TABLE jobs(id INTEGER PRIMARY KEY, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
+      );
+    },
+    version: 1,
+  );
+
+  Future<void> insertJob(JobData job) async {
+    final db = await database;
+
+    await db.insert(
+      "jobs",
+      job.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateJob(JobData job) async {
+    final db = await database;
+
+    await db.update("jobs", job.toMap(), where: "id = ?", whereArgs: [job.id]);
+  }
+
+  Future<List<JobData>> getJobs() async {
+    final db = await database;
+
+    final List<Map<String, Object?>> jobMap = await db.query("jobs");
+
+    return [
+      for (final {
+            "id": id as int,
+            "crop": crop as String,
+            "location": location as String,
+            "description": description as String,
+            "priority": priority as int,
+          }
+          in jobMap)
+        JobData(
+          id: id,
+          crop: crop,
+          location: location,
+          description: description,
+          priority: priority,
+        ),
+    ];
+  }
+
+  final jobs = await getJobs();
+
   runApp(
     MaterialApp(
       theme: ThemeData(
@@ -25,7 +89,7 @@ void main() {
           displayMedium: GoogleFonts.inter(fontSize: 20),
         ),
       ),
-      home: const SafeArea(child: MyScaffold()),
+      home: SafeArea(child: MyScaffold(jobs: jobs)),
     ),
   );
 }
@@ -88,14 +152,14 @@ class Card extends StatelessWidget {
   const Card({
     required this.crop,
     required this.location,
-    required this.jobTitle,
+    required this.description,
     required this.priority,
     super.key,
   });
 
   final String crop;
   final String location;
-  final String jobTitle;
+  final String description;
   final int priority;
 
   @override
@@ -145,7 +209,7 @@ class Card extends StatelessWidget {
           Text(location, style: Theme.of(context).textTheme.titleSmall),
           Expanded(
             child: Text(
-              jobTitle,
+              description,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -177,15 +241,10 @@ class _TopBarState extends State<TopBar> {
   bool wideScreen = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
+  Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     wideScreen = width > 600;
-  }
 
-  @override
-  Widget build(BuildContext context) {
     return Container(
       height: 150,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
@@ -249,63 +308,91 @@ final List<Card> cards = [
   Card(
     crop: "Sophora Dragons Gold/microphilia",
     location: "45R",
-    jobTitle: "60cm cane",
+    description: "60cm cane",
     priority: 3,
   ),
   Card(
     crop: "Pitto Wrinkle Blue",
     location: "7R, 56R",
-    jobTitle: "Trimming - 90cm 8/10mm",
+    description: "Trimming - 90cm 8/10mm",
     priority: 2,
   ),
   Card(
     crop: "Coprosma Kiwi Gold/Prostrata/Goldstream",
     location: "45R",
-    jobTitle:
+    description:
         "Trim back long shoots to pot rim edge and then do a bunch of random stuff",
     priority: 1,
   ),
   Card(
     crop: "Sophora Dragons Gold/microphilia",
     location: "45R",
-    jobTitle: "60cm cane",
+    description: "60cm cane",
     priority: 3,
   ),
   Card(
     crop: "Pitto Wrinkle Blue",
     location: "7R, 56R",
-    jobTitle: "Trimming - 90cm 8/10mm",
+    description: "Trimming - 90cm 8/10mm",
     priority: 2,
   ),
   Card(
     crop: "Coprosma Kiwi Gold/Prostrata/Goldstream",
     location: "45R",
-    jobTitle: "Trim back long shoots to pot rim edge",
+    description: "Trim back long shoots to pot rim edge",
     priority: 1,
   ),
   Card(
     crop: "Sophora Dragons Gold/microphilia",
     location: "45R",
-    jobTitle: "60cm cane",
+    description: "60cm cane",
     priority: 3,
   ),
   Card(
     crop: "Pitto Wrinkle Blue",
     location: "7R, 56R",
-    jobTitle:
+    description:
         "Trimming - 90cm 8/10mm and then do a bunch of other random stuff that needs to be done",
     priority: 2,
   ),
   Card(
     crop: "Coprosma Kiwi Gold/Prostrata/Goldstream",
     location: "45R",
-    jobTitle: "Trim back long shoots to pot rim edge",
+    description: "Trim back long shoots to pot rim edge",
     priority: 1,
   ),
 ];
 
+class JobData {
+  final int id;
+  final String crop;
+  final String location;
+  final String description;
+  final int priority;
+
+  const JobData({
+    required this.id,
+    required this.crop,
+    required this.location,
+    required this.description,
+    required this.priority,
+  });
+
+  Map<String, Object?> toMap() {
+    return {
+      "id": id,
+      "crop": crop,
+      "location": location,
+      "description": description,
+      "priority": priority,
+    };
+  }
+}
+
 class MyScaffold extends StatelessWidget {
-  const MyScaffold({super.key});
+  const MyScaffold({super.key, required this.jobs});
+
+  final List<JobData> jobs;
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +407,15 @@ class MyScaffold extends StatelessWidget {
               crossAxisSpacing: 36,
               mainAxisSpacing: 36,
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-              children: cards,
+              children: [
+                for (final job in jobs)
+                  Card(
+                    crop: job.crop,
+                    location: job.location,
+                    description: job.description,
+                    priority: job.priority,
+                  ),
+              ],
             ),
           ),
         ],
