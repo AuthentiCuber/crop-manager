@@ -80,10 +80,8 @@ class _TopBarState extends State<TopBar> {
     wideScreen = width > 600;
 
     return Container(
-      height: 150,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+      padding: .symmetric(horizontal: 10),
       child: Column(
-        mainAxisAlignment: .spaceEvenly,
         children: [
           if (!wideScreen)
             Center(
@@ -92,36 +90,39 @@ class _TopBarState extends State<TopBar> {
                 style: Theme.of(context).textTheme.displayLarge,
               ),
             ),
-          Row(
-            mainAxisAlignment: .spaceBetween,
-            children: [
-              GreenButton(
-                text: "Generate Job Sheet",
-                icon: Icons.text_snippet,
-                onPressed: () {},
-              ),
-              if (wideScreen)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "Thirkettle Nurseries",
-                      style: Theme.of(context).textTheme.displayLarge,
+          Padding(
+            padding: .symmetric(vertical: 15),
+            child: Row(
+              mainAxisAlignment: .spaceBetween,
+              children: [
+                GreenButton(
+                  text: "Generate Job Sheet",
+                  icon: Icons.text_snippet,
+                  onPressed: () {},
+                ),
+                if (wideScreen)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        "Thirkettle Nurseries",
+                        style: Theme.of(context).textTheme.displayLarge,
+                      ),
                     ),
                   ),
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: Icon(Icons.account_circle, size: 40),
+                  iconAlignment: .end,
+                  label: Text(
+                    "Account",
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: .symmetric(horizontal: 20, vertical: 15),
+                  ),
                 ),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: Icon(Icons.account_circle, size: 40),
-                iconAlignment: .end,
-                label: Text(
-                  "Account",
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: .symmetric(horizontal: 20, vertical: 15),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           Divider(height: 0),
         ],
@@ -164,19 +165,23 @@ class _CardAreaState extends State<CardArea> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisSize: .min,
       children: [
-        Row(
-          children: [
-            GrayButton(
-              text: "Create Job",
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => JobCreatePage(db: db)),
+        Padding(
+          padding: .symmetric(horizontal: 20, vertical: 20),
+          child: Row(
+            children: [
+              GrayButton(
+                text: "Create Job",
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => JobCreatePage(db: db),
+                  ),
+                ),
+                icon: Icons.add,
               ),
-              icon: Icons.add,
-            ),
-          ],
+            ],
+          ),
         ),
         GridView.extent(
           shrinkWrap: true,
