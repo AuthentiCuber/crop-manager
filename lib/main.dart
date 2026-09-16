@@ -26,7 +26,7 @@ void main() async {
     join(await getDatabasesPath(), "crop_jobs.db"),
     onCreate: (db, version) {
       return db.execute(
-        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTO_INCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
+        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
       );
     },
     version: 1,
