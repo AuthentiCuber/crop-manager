@@ -26,21 +26,10 @@ void main() async {
     join(await getDatabasesPath(), "crop_jobs.db"),
     onCreate: (db, version) {
       return db.execute(
-        "CREATE TABLE jobs(id INTEGER PRIMARY KEY, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
+        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTO_INCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
       );
     },
     version: 1,
-  );
-
-  insertJob(
-    await database,
-    JobData(
-      id: 1,
-      crop: "Plant",
-      location: "45R",
-      description: "trim etc.",
-      priority: 2,
-    ),
   );
 
   final jobs = await getJobs(await database);
@@ -181,18 +170,10 @@ class _CardAreaState extends State<CardArea> {
           children: [
             GrayButton(
               text: "Create Job",
-              onPressed: () async {
-                insertJob(
-                  await db,
-                  JobData(
-                    id: 2,
-                    crop: "next plant",
-                    location: "27L",
-                    description: "do the stuff",
-                    priority: 3,
-                  ),
-                );
-              },
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => JobCreatePage(db: db)),
+              ),
               icon: Icons.add,
             ),
           ],
@@ -211,14 +192,12 @@ class _CardAreaState extends State<CardArea> {
                 location: job.location,
                 description: job.description,
                 priority: job.priority,
-                editCallback: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditPage(job: job, db: db),
-                    ),
-                  );
-                },
+                editCallback: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => JobEditPage(job: job, db: db),
+                  ),
+                ),
               ),
           ],
         ),
@@ -246,8 +225,8 @@ class MainPage extends StatelessWidget {
   }
 }
 
-class EditPage extends StatelessWidget {
-  const EditPage({super.key, required this.job, required this.db});
+class JobEditPage extends StatelessWidget {
+  const JobEditPage({super.key, required this.job, required this.db});
 
   final JobData job;
   final Future<Database> db;
@@ -257,5 +236,16 @@ class EditPage extends StatelessWidget {
     return Material(
       child: JobFormEdit(job: job, database: db),
     );
+  }
+}
+
+class JobCreatePage extends StatelessWidget {
+  const JobCreatePage({super.key, required this.db});
+
+  final Future<Database> db;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(child: JobFormCreate(database: db));
   }
 }

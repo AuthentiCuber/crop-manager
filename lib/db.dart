@@ -19,3 +19,7 @@ Future<List<JobData>> getJobs(Database db) async {
 
   return [for (final job in jobMap) JobData.fromMap(job)];
 }
+
+Future<void> deleteJob(Database db, int jobId) async {
+  await db.delete("jobs", where: "id = ?", whereArgs: [jobId]);
+}

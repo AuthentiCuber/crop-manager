@@ -54,3 +54,12 @@ class GrayButton extends Button {
     super.key,
   }) : super(colour: Colors.grey, textColour: Colors.black);
 }
+
+class RedButton extends Button {
+  const RedButton({
+    required super.text,
+    required super.onPressed,
+    required super.icon,
+    super.key,
+  }) : super(colour: Colors.redAccent, textColour: Colors.white);
+}

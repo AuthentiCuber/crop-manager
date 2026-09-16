@@ -22,7 +22,6 @@ class JobData {
 
   Map<String, Object?> toMap() {
     return {
-      "id": id,
       "crop": crop,
       "location": location,
       "description": description,
