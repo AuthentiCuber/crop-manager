@@ -5,6 +5,46 @@ import 'data.dart';
 import 'db.dart';
 import 'button.dart';
 
+class TextInput extends StatelessWidget {
+  const TextInput({
+    super.key,
+    required this.label,
+    required this.validator,
+    required this.onChanged,
+    required this.initialValue,
+    required this.hint,
+  });
+
+  final String label;
+  final FormFieldValidator<String> validator;
+  final ValueChanged<String> onChanged;
+  final String? initialValue;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label, style: Theme.of(context).textTheme.titleMedium),
+        Padding(
+          padding: .symmetric(vertical: 10),
+          child: TextFormField(
+            initialValue: initialValue,
+            onChanged: onChanged,
+            validator: validator,
+            decoration: InputDecoration(hintText: hint),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String? requiredValidator(String? s) {
+  if (s == null || s.isEmpty) return "This field is required";
+  return null;
+}
+
 class JobFormEdit extends StatefulWidget {
   const JobFormEdit({super.key, required this.job, required this.database});
 
@@ -34,30 +74,42 @@ class _JobFormEditState extends State<JobFormEdit> {
       key: _formKey,
       child: Column(
         children: [
-          TextFormField(
-            initialValue: job!.crop,
+          Padding(
+            padding: .symmetric(vertical: 10),
+            child: Text(
+              "Update Job",
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          TextInput(
+            label: "Crop name",
+            validator: requiredValidator,
             onChanged: (value) {
               job!.crop = value;
             },
+            initialValue: job!.crop,
+            hint: "Coprosma Gold",
           ),
-          TextFormField(
-            initialValue: job!.description,
+          TextInput(
+            label: "Job description",
+            validator: requiredValidator,
             onChanged: (value) {
               job!.description = value;
             },
+            initialValue: job!.description,
+            hint: "Trim, water",
           ),
-          TextFormField(
-            initialValue: job!.location,
+          TextInput(
+            label: "Crop location",
+            validator: requiredValidator,
             onChanged: (value) {
               job!.location = value;
             },
+            initialValue: job!.location,
+            hint: "45R, 27L",
           ),
-          TextFormField(
-            initialValue: job!.priority.toString(),
-            onChanged: (value) {
-              if (!_formKey.currentState!.validate()) return;
-              job!.priority = int.parse(value);
-            },
+          TextInput(
+            label: "Job priority",
             validator: (String? val) {
               if (val == null ||
                   val.isEmpty ||
@@ -67,34 +119,43 @@ class _JobFormEditState extends State<JobFormEdit> {
               }
               return null;
             },
+            onChanged: (value) {
+              if (!_formKey.currentState!.validate()) return;
+              job!.priority = int.parse(value);
+            },
+            initialValue: job!.priority.toString(),
+            hint: "1, 2, 3",
           ),
-          Row(
-            mainAxisAlignment: .spaceEvenly,
-            children: [
-              GreenButton(
-                text: "Update",
-                onPressed: () {
-                  if (!_formKey.currentState!.validate()) return;
+          Padding(
+            padding: .symmetric(vertical: 20),
+            child: Row(
+              mainAxisAlignment: .spaceEvenly,
+              children: [
+                GreenButton(
+                  text: "Update",
+                  onPressed: () {
+                    if (!_formKey.currentState!.validate()) return;
 
-                  () async {
-                    updateJob(await db, job!);
-                  }();
+                    () async {
+                      updateJob(await db, job!);
+                    }();
 
-                  Navigator.pop(context);
-                },
-                icon: Icons.check,
-              ),
-              RedButton(
-                text: "Delete",
-                onPressed: () {
-                  () async {
-                    deleteJob(await db, job!.id);
-                  }();
-                  Navigator.pop(context);
-                },
-                icon: Icons.delete,
-              ),
-            ],
+                    Navigator.pop(context);
+                  },
+                  icon: Icons.check,
+                ),
+                RedButton(
+                  text: "Delete",
+                  onPressed: () {
+                    () async {
+                      deleteJob(await db, job!.id);
+                    }();
+                    Navigator.pop(context);
+                  },
+                  icon: Icons.delete,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -135,22 +196,42 @@ class _JobFormCreateState extends State<JobFormCreate> {
       key: _formKey,
       child: Column(
         children: [
-          TextFormField(
+          Padding(
+            padding: .symmetric(vertical: 10),
+            child: Text(
+              "Create Job",
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          TextInput(
+            label: "Crop name",
+            validator: requiredValidator,
             onChanged: (value) {
               job.crop = value;
             },
+            initialValue: null,
+            hint: "Coprosma Gold",
           ),
-          TextFormField(
+          TextInput(
+            label: "Job description",
+            validator: requiredValidator,
             onChanged: (value) {
               job.description = value;
             },
+            initialValue: null,
+            hint: "Trim, water",
           ),
-          TextFormField(
+          TextInput(
+            label: "Crop location",
+            validator: requiredValidator,
             onChanged: (value) {
               job.location = value;
             },
+            initialValue: null,
+            hint: "45R, 27L",
           ),
-          TextFormField(
+          TextInput(
+            label: "Job priority",
             onChanged: (value) {
               if (!_formKey.currentState!.validate()) return;
               job.priority = int.parse(value);
@@ -164,19 +245,24 @@ class _JobFormCreateState extends State<JobFormCreate> {
               }
               return null;
             },
+            initialValue: null,
+            hint: "1, 2, 3",
           ),
-          GreenButton(
-            text: "Create Job",
-            onPressed: () {
-              if (!_formKey.currentState!.validate()) return;
+          Padding(
+            padding: .symmetric(vertical: 20),
+            child: GreenButton(
+              text: "Create Job",
+              onPressed: () {
+                if (!_formKey.currentState!.validate()) return;
 
-              () async {
-                insertJob(await db, job);
-              }();
+                () async {
+                  insertJob(await db, job);
+                }();
 
-              Navigator.pop(context);
-            },
-            icon: Icons.add,
+                Navigator.pop(context);
+              },
+              icon: Icons.add,
+            ),
           ),
         ],
       ),

@@ -239,7 +239,13 @@ class JobEditPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: JobFormEdit(job: job, database: db),
+      child: Center(
+        child: SizedBox(
+          width: 600,
+          height: 600,
+          child: JobFormEdit(job: job, database: db),
+        ),
+      ),
     );
   }
 }
@@ -251,6 +257,14 @@ class JobCreatePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(child: JobFormCreate(database: db));
+    return Material(
+      child: Center(
+        child: SizedBox(
+          width: 600,
+          height: 600,
+          child: JobFormCreate(database: db),
+        ),
+      ),
+    );
   }
 }
