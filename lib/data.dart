@@ -1,9 +1,12 @@
+enum Account { manager, worker }
+
 class JobData {
   int id;
   String crop;
   String location;
   String description;
   int priority;
+  int isCompleted;
 
   JobData({
     required this.id,
@@ -11,6 +14,7 @@ class JobData {
     required this.location,
     required this.description,
     required this.priority,
+    required this.isCompleted,
   });
 
   JobData.fromMap(Map<String, Object?> map)
@@ -18,7 +22,8 @@ class JobData {
       crop = map["crop"] as String,
       location = map["location"] as String,
       description = map["description"] as String,
-      priority = map["priority"] as int;
+      priority = map["priority"] as int,
+      isCompleted = map["is_completed"] as int;
 
   Map<String, Object?> toMap() {
     return {
@@ -26,6 +31,7 @@ class JobData {
       "location": location,
       "description": description,
       "priority": priority,
+      "is_completed": isCompleted,
     };
   }
 }

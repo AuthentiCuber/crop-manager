@@ -182,6 +182,7 @@ class _JobFormCreateState extends State<JobFormCreate> {
     location: "",
     description: "",
     priority: 1,
+    isCompleted: 0,
   );
 
   @override

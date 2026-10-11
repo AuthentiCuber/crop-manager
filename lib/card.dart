@@ -1,22 +1,21 @@
+import 'package:flutest/data.dart';
 import 'package:flutter/material.dart';
 
 import 'button.dart';
 
 class JobCard extends StatelessWidget {
   const JobCard({
-    required this.crop,
-    required this.location,
-    required this.description,
-    required this.priority,
-    required this.editCallback,
     super.key,
+    required this.job,
+    required this.editPageRoute,
+    required this.toggleDoneCallback,
+    required this.isManager,
   });
 
-  final String crop;
-  final String location;
-  final String description;
-  final int priority;
-  final VoidCallback editCallback;
+  final JobData job;
+  final Route editPageRoute;
+  final VoidCallback toggleDoneCallback;
+  final bool isManager;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +35,7 @@ class JobCard extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  crop,
+                  job.crop,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -48,22 +47,22 @@ class JobCard extends StatelessWidget {
                   color: HSVColor.lerp(
                     HSVColor.fromAHSV(1, 0, 1, 0.7),
                     HSVColor.fromAHSV(1, 110, 1, 0.7),
-                    (priority - 1) / 2,
+                    (job.priority - 1) / 2,
                   )?.toColor(),
                 ),
                 child: Center(
                   child: Text(
-                    priority.toString(),
+                    job.priority.toString(),
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
             ],
           ),
-          Text(location, style: Theme.of(context).textTheme.titleSmall),
+          Text(job.location, style: Theme.of(context).textTheme.titleSmall),
           Expanded(
             child: Text(
-              description,
+              job.description,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -71,12 +70,28 @@ class JobCard extends StatelessWidget {
             padding: .only(bottom: 20, top: 10),
             child: Divider(height: 0),
           ),
-          Center(
-            child: GreenButton(
-              text: "Edit",
-              onPressed: editCallback,
-              icon: Icons.edit,
-            ),
+          Row(
+            mainAxisAlignment: .spaceEvenly,
+            children: [
+              if (isManager)
+                GreenButton(
+                  text: "Edit",
+                  onPressed: () => Navigator.push(context, editPageRoute),
+                  icon: Icons.edit,
+                ),
+              if (job.isCompleted == 0)
+                GreenButton(
+                  text: "Mark done",
+                  onPressed: toggleDoneCallback,
+                  icon: Icons.done,
+                ),
+              if (job.isCompleted == 1)
+                RedButton(
+                  text: "Mark not done",
+                  onPressed: toggleDoneCallback,
+                  icon: Icons.cancel,
+                ),
+            ],
           ),
         ],
       ),

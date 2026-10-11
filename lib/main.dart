@@ -16,6 +16,7 @@ import 'card.dart';
 import 'forms.dart';
 
 void main() async {
+  // required for database stuff
   WidgetsFlutterBinding.ensureInitialized();
 
   if (kIsWeb) {
@@ -26,7 +27,7 @@ void main() async {
     join(await getDatabasesPath(), "crop_jobs.db"),
     onCreate: (db, version) {
       return db.execute(
-        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER)",
+        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER, is_completed INTEGER)",
       );
     },
     version: 1,
@@ -58,14 +59,15 @@ void main() async {
         ),
       ),
       home: SafeArea(
-        child: MainPage(jobs: jobs, db: database),
+        child: MainPage(jobs: jobs, db: database, account: .worker),
       ),
     ),
   );
 }
 
 class TopBar extends StatefulWidget {
-  const TopBar({super.key});
+  const TopBar({super.key, required this.account});
+  final Account account;
 
   @override
   State<TopBar> createState() => _TopBarState();
@@ -73,6 +75,13 @@ class TopBar extends StatefulWidget {
 
 class _TopBarState extends State<TopBar> {
   bool wideScreen = false;
+  late Account account;
+
+  @override
+  void initState() {
+    super.initState();
+    account = widget.account;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,11 +104,12 @@ class _TopBarState extends State<TopBar> {
             child: Row(
               mainAxisAlignment: .spaceBetween,
               children: [
-                GreenButton(
-                  text: "Generate Job Sheet",
-                  icon: Icons.text_snippet,
-                  onPressed: () {},
-                ),
+                if (account == .manager)
+                  GreenButton(
+                    text: "Generate Job Sheet",
+                    icon: Icons.text_snippet,
+                    onPressed: () {},
+                  ),
                 if (wideScreen)
                   Expanded(
                     child: Center(
@@ -132,9 +142,10 @@ class _TopBarState extends State<TopBar> {
 }
 
 class CardArea extends StatefulWidget {
-  const CardArea({super.key, required this.database});
+  const CardArea({super.key, required this.database, required this.account});
 
   final Future<Database> database;
+  final Account account;
 
   @override
   State<CardArea> createState() => _CardAreaState();
@@ -143,11 +154,13 @@ class CardArea extends StatefulWidget {
 class _CardAreaState extends State<CardArea> {
   List<JobData> _jobs = [];
   late Future<Database> db;
+  late Account account;
 
   @override
   void initState() {
     super.initState();
     db = widget.database;
+    account = widget.account;
     _refreshCards();
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -170,22 +183,23 @@ class _CardAreaState extends State<CardArea> {
           padding: .symmetric(horizontal: 20, vertical: 20),
           child: Row(
             children: [
-              GrayButton(
-                text: "Create Job",
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => JobCreatePage(db: db),
+              if (account == .manager)
+                GrayButton(
+                  text: "Create Job",
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => JobCreatePage(db: db),
+                    ),
                   ),
+                  icon: Icons.add,
                 ),
-                icon: Icons.add,
-              ),
             ],
           ),
         ),
         GridView.extent(
           shrinkWrap: true,
-          maxCrossAxisExtent: 300,
+          maxCrossAxisExtent: 350,
           mainAxisExtent: 300,
           crossAxisSpacing: 36,
           mainAxisSpacing: 36,
@@ -193,16 +207,24 @@ class _CardAreaState extends State<CardArea> {
           children: [
             for (final job in _jobs)
               JobCard(
-                crop: job.crop,
-                location: job.location,
-                description: job.description,
-                priority: job.priority,
-                editCallback: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => JobEditPage(job: job, db: db),
-                  ),
+                job: job,
+                editPageRoute: MaterialPageRoute(
+                  builder: (context) => JobEditPage(job: job, db: db),
                 ),
+                toggleDoneCallback: () async {
+                  updateJob(
+                    await db,
+                    JobData(
+                      id: job.id,
+                      crop: job.crop,
+                      location: job.location,
+                      description: job.description,
+                      priority: job.priority,
+                      isCompleted: 1 - job.isCompleted,
+                    ),
+                  );
+                },
+                isManager: account == .manager,
               ),
           ],
         ),
@@ -212,18 +234,24 @@ class _CardAreaState extends State<CardArea> {
 }
 
 class MainPage extends StatelessWidget {
-  const MainPage({super.key, required this.jobs, required this.db});
+  const MainPage({
+    super.key,
+    required this.jobs,
+    required this.db,
+    required this.account,
+  });
 
   final List<JobData> jobs;
   final Future<Database> db;
+  final Account account;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       child: Column(
         children: [
-          TopBar(),
-          CardArea(database: db),
+          TopBar(account: account),
+          CardArea(database: db, account: account),
         ],
       ),
     );
