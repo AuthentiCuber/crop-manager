@@ -9,6 +9,8 @@ import 'package:path/path.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:provider/provider.dart';
+
 import 'data.dart';
 import 'db.dart';
 import 'button.dart';
@@ -59,15 +61,17 @@ void main() async {
         ),
       ),
       home: SafeArea(
-        child: MainPage(jobs: jobs, db: database, account: .worker),
+        child: ChangeNotifierProvider(
+          create: (context) => AccountModel(),
+          child: MainPage(jobs: jobs, db: database),
+        ),
       ),
     ),
   );
 }
 
 class TopBar extends StatefulWidget {
-  const TopBar({super.key, required this.account});
-  final Account account;
+  const TopBar({super.key});
 
   @override
   State<TopBar> createState() => _TopBarState();
@@ -75,13 +79,6 @@ class TopBar extends StatefulWidget {
 
 class _TopBarState extends State<TopBar> {
   bool wideScreen = false;
-  late Account account;
-
-  @override
-  void initState() {
-    super.initState();
-    account = widget.account;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,37 +98,45 @@ class _TopBarState extends State<TopBar> {
             ),
           Padding(
             padding: .symmetric(vertical: 15),
-            child: Row(
-              mainAxisAlignment: .spaceBetween,
-              children: [
-                if (account == .manager)
-                  GreenButton(
-                    text: "Generate Job Sheet",
-                    icon: Icons.text_snippet,
-                    onPressed: () {},
-                  ),
-                if (wideScreen)
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        "Thirkettle Nurseries",
-                        style: Theme.of(context).textTheme.displayLarge,
+            child: Consumer<AccountModel>(
+              builder: (context, account, child) {
+                return Row(
+                  mainAxisAlignment: .spaceBetween,
+                  children: [
+                    if (account.type == .manager)
+                      GreenButton(
+                        text: "Generate Job Sheet",
+                        icon: Icons.text_snippet,
+                        onPressed: () {},
+                      ),
+                    if (wideScreen)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            "Thirkettle Nurseries",
+                            style: Theme.of(context).textTheme.displayLarge,
+                          ),
+                        ),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        account.setType(
+                          account.type == .manager ? .worker : .manager,
+                        );
+                      },
+                      icon: Icon(Icons.account_circle, size: 40),
+                      iconAlignment: .end,
+                      label: Text(
+                        account.type == .manager ? "Manager" : "Worker",
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: .symmetric(horizontal: 20, vertical: 15),
                       ),
                     ),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: Icon(Icons.account_circle, size: 40),
-                  iconAlignment: .end,
-                  label: Text(
-                    "Account",
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: .symmetric(horizontal: 20, vertical: 15),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
           Divider(height: 0),
@@ -142,10 +147,9 @@ class _TopBarState extends State<TopBar> {
 }
 
 class CardArea extends StatefulWidget {
-  const CardArea({super.key, required this.database, required this.account});
+  const CardArea({super.key, required this.database});
 
   final Future<Database> database;
-  final Account account;
 
   @override
   State<CardArea> createState() => _CardAreaState();
@@ -154,13 +158,11 @@ class CardArea extends StatefulWidget {
 class _CardAreaState extends State<CardArea> {
   List<JobData> _jobs = [];
   late Future<Database> db;
-  late Account account;
 
   @override
   void initState() {
     super.initState();
     db = widget.database;
-    account = widget.account;
     _refreshCards();
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -181,20 +183,24 @@ class _CardAreaState extends State<CardArea> {
       children: [
         Padding(
           padding: .symmetric(horizontal: 20, vertical: 20),
-          child: Row(
-            children: [
-              if (account == .manager)
-                GrayButton(
-                  text: "Create Job",
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => JobCreatePage(db: db),
+          child: Consumer<AccountModel>(
+            builder: (context, account, child) {
+              return Row(
+                children: [
+                  if (account.type == .manager)
+                    GrayButton(
+                      text: "Create Job",
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => JobCreatePage(db: db),
+                        ),
+                      ),
+                      icon: Icons.add,
                     ),
-                  ),
-                  icon: Icons.add,
-                ),
-            ],
+                ],
+              );
+            },
           ),
         ),
         GridView.extent(
@@ -224,7 +230,6 @@ class _CardAreaState extends State<CardArea> {
                     ),
                   );
                 },
-                isManager: account == .manager,
               ),
           ],
         ),
@@ -234,24 +239,18 @@ class _CardAreaState extends State<CardArea> {
 }
 
 class MainPage extends StatelessWidget {
-  const MainPage({
-    super.key,
-    required this.jobs,
-    required this.db,
-    required this.account,
-  });
+  const MainPage({super.key, required this.jobs, required this.db});
 
   final List<JobData> jobs;
   final Future<Database> db;
-  final Account account;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       child: Column(
         children: [
-          TopBar(account: account),
-          CardArea(database: db, account: account),
+          TopBar(),
+          CardArea(database: db),
         ],
       ),
     );

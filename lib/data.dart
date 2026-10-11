@@ -1,4 +1,17 @@
-enum Account { manager, worker }
+import 'package:flutter/foundation.dart' show ChangeNotifier;
+
+enum AccountType { manager, worker }
+
+class AccountModel extends ChangeNotifier {
+  AccountType _type = .manager;
+
+  AccountType get type => _type;
+
+  void setType(AccountType type) {
+    _type = type;
+    notifyListeners();
+  }
+}
 
 class JobData {
   int id;

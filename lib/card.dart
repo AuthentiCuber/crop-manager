@@ -1,6 +1,8 @@
-import 'package:flutest/data.dart';
 import 'package:flutter/material.dart';
 
+import 'package:provider/provider.dart';
+
+import 'data.dart';
 import 'button.dart';
 
 class JobCard extends StatelessWidget {
@@ -9,13 +11,11 @@ class JobCard extends StatelessWidget {
     required this.job,
     required this.editPageRoute,
     required this.toggleDoneCallback,
-    required this.isManager,
   });
 
   final JobData job;
   final Route editPageRoute;
   final VoidCallback toggleDoneCallback;
-  final bool isManager;
 
   @override
   Widget build(BuildContext context) {
@@ -70,28 +70,32 @@ class JobCard extends StatelessWidget {
             padding: .only(bottom: 20, top: 10),
             child: Divider(height: 0),
           ),
-          Row(
-            mainAxisAlignment: .spaceEvenly,
-            children: [
-              if (isManager)
-                GreenButton(
-                  text: "Edit",
-                  onPressed: () => Navigator.push(context, editPageRoute),
-                  icon: Icons.edit,
-                ),
-              if (job.isCompleted == 0)
-                GreenButton(
-                  text: "Mark done",
-                  onPressed: toggleDoneCallback,
-                  icon: Icons.done,
-                ),
-              if (job.isCompleted == 1)
-                RedButton(
-                  text: "Mark not done",
-                  onPressed: toggleDoneCallback,
-                  icon: Icons.cancel,
-                ),
-            ],
+          Consumer<AccountModel>(
+            builder: (context, account, child) {
+              return Row(
+                mainAxisAlignment: .spaceEvenly,
+                children: [
+                  if (account.type == .manager)
+                    GreenButton(
+                      text: "Edit",
+                      onPressed: () => Navigator.push(context, editPageRoute),
+                      icon: Icons.edit,
+                    ),
+                  if (job.isCompleted == 0)
+                    GreenButton(
+                      text: "Mark done",
+                      onPressed: toggleDoneCallback,
+                      icon: Icons.done,
+                    ),
+                  if (job.isCompleted == 1)
+                    RedButton(
+                      text: "Mark not done",
+                      onPressed: toggleDoneCallback,
+                      icon: Icons.cancel,
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
