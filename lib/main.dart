@@ -29,13 +29,11 @@ void main() async {
     join(await getDatabasesPath(), "crop_jobs.db"),
     onCreate: (db, version) {
       return db.execute(
-        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER, is_completed INTEGER)",
+        "CREATE TABLE jobs(id INTEGER PRIMARY KEY AUTOINCREMENT, crop TEXT, location TEXT, description TEXT, priority INTEGER, is_completed INTEGER, assigned INTEGER)",
       );
     },
     version: 1,
   );
-
-  final jobs = await getJobs(await database);
 
   runApp(
     MaterialApp(
@@ -60,25 +58,30 @@ void main() async {
           displayMedium: GoogleFonts.inter(fontSize: 20),
         ),
       ),
-      home: SafeArea(
-        child: ChangeNotifierProvider(
-          create: (context) => AccountModel(),
-          child: MainPage(jobs: jobs, db: database),
-        ),
-      ),
+      home: SafeArea(child: MainPage(db: database)),
     ),
   );
 }
 
 class TopBar extends StatefulWidget {
-  const TopBar({super.key});
+  const TopBar({super.key, required this.database});
+
+  final Future<Database> database;
 
   @override
   State<TopBar> createState() => _TopBarState();
 }
 
 class _TopBarState extends State<TopBar> {
+  late Future<Database> db;
+
   bool wideScreen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    db = widget.database;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +110,12 @@ class _TopBarState extends State<TopBar> {
                       GreenButton(
                         text: "Generate Job Sheet",
                         icon: Icons.text_snippet,
-                        onPressed: () {},
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GenJobListPage(db: db),
+                          ),
+                        ),
                       ),
                     if (wideScreen)
                       Expanded(
@@ -163,15 +171,20 @@ class _CardAreaState extends State<CardArea> {
   void initState() {
     super.initState();
     db = widget.database;
-    _refreshCards();
 
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      _refreshCards();
-    });
+    _refreshCards();
+    Timer.periodic(Duration(seconds: 1), (timer) => _refreshCards());
   }
 
   void _refreshCards() async {
-    final jobs = await getJobs(await db);
+    final accountType = Provider.of<AccountModel>(
+      this.context,
+      listen: false,
+    ).type;
+    final jobs = await getJobs(
+      await db,
+      where: accountType == .worker ? "assigned = 1" : null,
+    );
     setState(() {
       _jobs = jobs;
     });
@@ -212,7 +225,7 @@ class _CardAreaState extends State<CardArea> {
           padding: .symmetric(horizontal: 20, vertical: 0),
           children: [
             for (final job in _jobs)
-              JobCard(
+              DefaultJobCard(
                 job: job,
                 editPageRoute: MaterialPageRoute(
                   builder: (context) => JobEditPage(job: job, db: db),
@@ -227,6 +240,7 @@ class _CardAreaState extends State<CardArea> {
                       description: job.description,
                       priority: job.priority,
                       isCompleted: 1 - job.isCompleted,
+                      assigned: job.assigned,
                     ),
                   );
                 },
@@ -238,20 +252,64 @@ class _CardAreaState extends State<CardArea> {
   }
 }
 
-class MainPage extends StatelessWidget {
-  const MainPage({super.key, required this.jobs, required this.db});
+class JobSelectorCards extends StatefulWidget {
+  const JobSelectorCards({super.key, required this.db});
 
-  final List<JobData> jobs;
+  final Future<Database> db;
+
+  @override
+  State<StatefulWidget> createState() => _JobSelectorCardsState();
+}
+
+class _JobSelectorCardsState extends State<JobSelectorCards> {
+  late Future<Database> _db;
+
+  List<JobData> _jobs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _db = widget.db;
+    _getJobs();
+  }
+
+  void _getJobs() async {
+    final jobs = await getJobs(await _db, where: "is_completed = 0");
+    setState(() {
+      _jobs = jobs;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.extent(
+      shrinkWrap: true,
+      maxCrossAxisExtent: 350,
+      mainAxisExtent: 300,
+      crossAxisSpacing: 36,
+      mainAxisSpacing: 36,
+      padding: .symmetric(horizontal: 20, vertical: 0),
+      children: [for (final job in _jobs) JobSelectorCard(job: job)],
+    );
+  }
+}
+
+class MainPage extends StatelessWidget {
+  const MainPage({super.key, required this.db});
+
   final Future<Database> db;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Column(
-        children: [
-          TopBar(),
-          CardArea(database: db),
-        ],
+      child: ChangeNotifierProvider(
+        create: (context) => AccountModel(),
+        child: Column(
+          children: [
+            TopBar(database: db),
+            CardArea(database: db),
+          ],
+        ),
       ),
     );
   }
@@ -290,6 +348,64 @@ class JobCreatePage extends StatelessWidget {
           width: 600,
           height: 600,
           child: JobFormCreate(database: db),
+        ),
+      ),
+    );
+  }
+}
+
+class GenJobListPage extends StatelessWidget {
+  const GenJobListPage({super.key, required this.db});
+
+  final Future<Database> db;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: ChangeNotifierProvider<JobList>(
+        create: (context) => JobList(),
+        child: Column(
+          children: [
+            Padding(
+              padding: .symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                spacing: 20,
+                children: [
+                  Consumer<JobList>(
+                    builder: (context, joblist, child) => GreenButton(
+                      text: "Generate",
+                      onPressed: () async {
+                        for (final job in joblist.items) {
+                          await updateJob(
+                            await db,
+                            JobData(
+                              id: job.id,
+                              crop: job.crop,
+                              location: job.location,
+                              description: job.description,
+                              priority: job.priority,
+                              isCompleted: job.isCompleted,
+                              assigned: 1 - job.assigned,
+                            ),
+                          );
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      icon: Icons.done,
+                    ),
+                  ),
+                  GrayButton(
+                    text: "Cancel",
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icons.cancel,
+                  ),
+                ],
+              ),
+            ),
+            JobSelectorCards(db: db),
+          ],
         ),
       ),
     );
